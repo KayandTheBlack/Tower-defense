@@ -26,12 +26,16 @@ class BasicAI {
       else Tile = { i: 0, j: -1 }
       Tile.i += this.position.i
       Tile.j += this.position.j
-      if (Tile.i > 0 && Tile.i < board.length && Tile.j > 0 && Tile.j < board[0].length) {
-        if (board[Tile.i][Tile.j] === C.EMPTY_CELL && Tile !== this.lastPosition) posTiles += Tile
+      if (Tile.i >= 0 && Tile.i < board.length && Tile.j >= 0 && Tile.j < board[0].length) {
+        if (board[Tile.i][Tile.j] === C.EMPTY_CELL && Tile !== this.lastPosition) {
+          posTiles.push(Tile)
+          console.log('Possible tile: ' + JSON.stringify(Tile))
+        }
       }
       r++
     }
-    if (posTiles.length === 0) console.log('FATAL ERROR, got no place to advance for ' + this.name + ' in ' + this.position)
+    console.log(JSON.stringify(posTiles))
+    if (posTiles.length === 0) console.log('FATAL ERROR, got no place to advance for ' + this.name + ' in ' + this.position.i + 'x' + this.position.j)
     if (posTiles.length === 1) return posTiles[0]
     else {
       let chosen = false
@@ -58,13 +62,19 @@ class BasicAI {
     this.position = pos
     if (board[pos.i][pos.j] === C.EMPTY_CELL) board[pos.i][pos.j] = [this]
     else board[pos.i][pos.j] += this
+    if (board[this.lastPosition.i][this.lastPosition.j].length === 1) board[this.lastPosition.i][this.lastPosition.j] = -1
+    else {
+      let i
+      for (i = 0; board[this.lastPosition.i][this.lastPosition.j][i].name !== this.name; i++) {}
+      board[this.lastPosition.i][this.lastPosition.j].splice(i, 1)
+    }
   }
   attack () {
     if (Math.Random() < this.critChance) return Math.round(this.attack * this.critModifier + Math.Random() * 3 - 1)
     else return Math.round(this.attack + Math.Random() * 3 - 1)
   }
   tickTurn (board) {
-    var objectiveTile = objectiveTile(board)
+    var objectiveTile = this.objectiveTile(board)
     if (board[objectiveTile.i][objectiveTile.j] === C.EMPTY_CELL) {
       this.advance(board, objectiveTile)
     } else {
