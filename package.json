@@ -1,0 +1,30 @@
+{
+  "name": "tower-defense",
+  "version": "0.0.1",
+  "description": "A Tower Defense coop game",
+  "main": "src/server.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "browserify src/client.js -o dist/bundle.js && browserify src/clientchat.js -o dist/clientchat.js && echo 'built!'",
+    "watch": "chokidar 'src/**/*.js' 'test/**/*.js' -c 'npm test && npm run build'",
+    "test": "standard && tape test/**/*.spec.js | tap-notify | tap-spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KayandTheBlack/Tower-defense.git"
+  },
+  "author": "Victor Gimenez",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/KayandTheBlack/Tower-defense/issues"
+  },
+  "homepage": "https://github.com/KayandTheBlack/Tower-defense#readme",
+  "devDependencies": {
+    "browserify": "^13.0.1",
+    "chokidar-cli": "^1.2.0",
+    "standard": "^7.1.2",
+    "tape": "^4.6.0"
+  }
+}
