@@ -1,8 +1,11 @@
 module.exports = {
   BUILDABLE_CELL: -1,
-  MAX_PLAYERS: 4,
   BUILT_CELL: -2,
+  END_CELL: -3,
+  PATH_CELL: 0,
+  MAX_PLAYERS: 4,
   MAXLVL: 100,
+  // BUILDINGS
   COST: {
     ARCHER: 25,
     CANON: 100,
@@ -22,5 +25,18 @@ module.exports = {
     UPCOOL: 0,
     UPCOST: 50 // times lvl to upgrade?
   },
-  SELL_MODIFIER: 0.25
+  SELL_MODIFIER: 0.25,
+  // ENEMIES
+  BASIC: {
+    MOVSPEED: 3,
+    BASELIFE: 4
+  },
+  QUICK: {
+    MOVSPEED: 1,
+    BASELIFE: 2
+  },
+  TANK: {
+    MOVSPEED: 10,
+    BASELIFE: 8
+  }
 }

@@ -6,6 +6,7 @@ class Building {
     this.dmg = C[type].BASEDMG
     this.cooldown = C[type].MAX_COOLDOWN
     this.maxCD = C[type].MAX_COOLDOWN
+    this.target = null
     this.position = {
       i: position.i,
       j: position.j
