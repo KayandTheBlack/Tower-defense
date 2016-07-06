@@ -184,7 +184,7 @@ class Turn {
         }
       }
     }
-    return new Turn(nwboard, [null, null, null, null], nwbuildings, nwgold, nwenemies, nwlifes)
+    return new Turn(nwboard, new Array(C.MAX_PLAYERS).fill(null), nwbuildings, nwgold, nwenemies, nwlifes)
   }
 }
 
