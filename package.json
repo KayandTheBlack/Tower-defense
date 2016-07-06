@@ -7,8 +7,8 @@
     "test": "test"
   },
   "scripts": {
-    "build": "browserify src/client.js -o dist/bundle.js && browserify src/clientchat.js -o dist/clientchat.js && echo 'built!'",
-    "watch": "chokidar 'src/**/*.js' 'test/**/*.js' -c 'npm test && npm run build'",
+    "build": "browserify src/client.js -o dist/bundle.js && echo 'built!'",
+    "watch": "chokidar 'src/**/*.js' 'test/**/*.js' -c 'npm test; npm run build'",
     "test": "standard && tape test/**/*.spec.js | tap-notify | tap-spec"
   },
   "repository": {
@@ -30,6 +30,10 @@
     "tape": "^4.6.0"
   },
   "dependencies": {
-    "clone": "^1.0.2"
+    "clone": "^1.0.2",
+    "express": "^4.14.0",
+    "pixi.js": "^3.0.11",
+    "socket.io": "^1.4.8",
+    "socket.io-client": "^1.4.8"
   }
 }

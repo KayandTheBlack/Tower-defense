@@ -58,7 +58,11 @@ class Game {
   }
   sendState () {
     const state = {
-      turn: this.turn // add more stuff?
+      turn: this.turn,
+      waveNumber: this.waveNumber,
+      spawn: this.spawn,
+      ops: this.ops,
+      foesToSpawn: this.foesToSpawn
     }
     this.sockets.forEach((socket) => socket && socket.emit('game:state', state))
   }
