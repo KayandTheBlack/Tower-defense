@@ -1,5 +1,6 @@
 const C = require('./constants.js')
 const { Building } = require('./Building.js')
+const { Enemy } = require('./Enemy.js')
 const clone = require('clone')
 
 function searchPosInVector (position, vector) {
@@ -87,6 +88,7 @@ class Turn {
               else {
                 nwgold -= C.COST[this.inputs[i].type]
                 nwbuildings.push(new Building(this.inputs[i].type, this.inputs[i].tile))
+                console.log('BUILT!!')
               }
             }
           } else if (this.inputs[i].action === 'UPGRADE') {
@@ -130,7 +132,7 @@ class Turn {
             let it = searchPosInVector(possibleTiles[i], nwenemies)
             if (it !== nwenemies.length) {
               tower.target = nwenemies[it].id
-              console.log('A tower picks a target with ID: ' + tower.target)
+              // console.log('A tower picks a target with ID: ' + tower.target)
             }
           }
         }
@@ -143,11 +145,11 @@ class Turn {
           }
           if (i === nwenemies.length) tower.target = null
           else {
-            console.log(nwenemies[i].life)
+            // console.log(nwenemies[i].life)
             nwenemies[i].life -= tower.dmg
             tower.cooldown = tower.maxCD
-            console.log('A tower attacks!')
-            console.log(nwenemies[i].life)
+            // console.log('A tower attacks!')
+            // console.log(nwenemies[i].life)
           }
         }
       }
@@ -179,7 +181,7 @@ class Turn {
           if (foo === possibleTiles.lenght) console.log('ERROR: enemy in ' + nwenemies[i].position + ' reached a deadend')
           nwenemies[i].lastposition = nwenemies[i].position
           nwenemies[i].position = possibleTiles[foo]
-          console.log('An enemy moves from ' + JSON.stringify(nwenemies[i].lastposition) + 'to' + JSON.stringify(nwenemies[i].position))
+          // console.log('An enemy moves from ' + JSON.stringify(nwenemies[i].lastposition) + 'to' + JSON.stringify(nwenemies[i].position))
           nwenemies[i].cd = nwenemies[i].maxCD
         }
       }

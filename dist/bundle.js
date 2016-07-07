@@ -38667,12 +38667,14 @@ class Game {
     this.sockets.forEach((socket) => socket && socket.emit('game:state', state))
   }
   tick () {
-    if (elemsInArray(this.sockets) === 0) {
+    if (Object.keys(this.players).length > 1) {
       console.log('Not enough players!')
       return
     }
+    // console.log('tick')
     if (this.foesToSpawn.length !== 0) {
       this.turn.enemies.push(new Enemy(this.foesToSpawn[0].type, this.spawn, Math.floor(this.waveNumber / this.waves.length + this.foesToSpawn[0].lvlmod)))
+      this.foesToSpawn.splice(0, 1)
     }
     this.turn = this.turn.evolve()
     if (this.turn.enemies.length === 0) {
@@ -38688,6 +38690,7 @@ exports.Game = Game
 },{"./Enemy.js":190,"./Turn.js":192,"./wave.js":195}],192:[function(require,module,exports){
 const C = require('./constants.js')
 const { Building } = require('./Building.js')
+const { Enemy } = require('./Enemy.js')
 const clone = require('clone')
 
 function searchPosInVector (position, vector) {
@@ -38775,6 +38778,7 @@ class Turn {
               else {
                 nwgold -= C.COST[this.inputs[i].type]
                 nwbuildings.push(new Building(this.inputs[i].type, this.inputs[i].tile))
+                console.log('BUILT!!')
               }
             }
           } else if (this.inputs[i].action === 'UPGRADE') {
@@ -38818,7 +38822,7 @@ class Turn {
             let it = searchPosInVector(possibleTiles[i], nwenemies)
             if (it !== nwenemies.length) {
               tower.target = nwenemies[it].id
-              console.log('A tower picks a target with ID: ' + tower.target)
+              // console.log('A tower picks a target with ID: ' + tower.target)
             }
           }
         }
@@ -38831,11 +38835,11 @@ class Turn {
           }
           if (i === nwenemies.length) tower.target = null
           else {
-            console.log(nwenemies[i].life)
+            // console.log(nwenemies[i].life)
             nwenemies[i].life -= tower.dmg
             tower.cooldown = tower.maxCD
-            console.log('A tower attacks!')
-            console.log(nwenemies[i].life)
+            // console.log('A tower attacks!')
+            // console.log(nwenemies[i].life)
           }
         }
       }
@@ -38867,7 +38871,7 @@ class Turn {
           if (foo === possibleTiles.lenght) console.log('ERROR: enemy in ' + nwenemies[i].position + ' reached a deadend')
           nwenemies[i].lastposition = nwenemies[i].position
           nwenemies[i].position = possibleTiles[foo]
-          console.log('An enemy moves from ' + JSON.stringify(nwenemies[i].lastposition) + 'to' + JSON.stringify(nwenemies[i].position))
+          // console.log('An enemy moves from ' + JSON.stringify(nwenemies[i].lastposition) + 'to' + JSON.stringify(nwenemies[i].position))
           nwenemies[i].cd = nwenemies[i].maxCD
         }
       }
@@ -38878,17 +38882,19 @@ class Turn {
 
 exports.Turn = Turn
 
-},{"./Building.js":189,"./constants.js":194,"clone":10}],193:[function(require,module,exports){
+},{"./Building.js":189,"./Enemy.js":190,"./constants.js":194,"clone":10}],193:[function(require,module,exports){
 /* global requestAnimationFrame */
 const PIXI = require('pixi.js')
 const { Game } = require('./Game.js')
+const { Turn } = require('./Turn.js')
+const { Enemy } = require('./Enemy.js')
 const socket = require('socket.io-client')()
 const C = require('./constants.js')
 // CANVAS AND RENDERER
-var renderer = PIXI.autoDetectRenderer(1000, 1000)
+var renderer = PIXI.autoDetectRenderer(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.view)
 var stage = new PIXI.Container()
-
+stage.scale = {x: 3, y: 3}
 var imgResources = [
   'img/grass.png',
   'img/path.png',
@@ -38897,15 +38903,23 @@ var imgResources = [
   'img/tower2_2.png',
   'img/tower3_1.png',
   'img/tower3_2.png',
-  'img/tower3_3.png'
+  'img/tower3_3.png',
+  'img/sell.png',
+  'img/chrystal.png',
+  'img/orc.png'
 ]
 
 // LOAD IMAGES
 var ops = null
 var game
 socket.on('game:state', (state) => {
-  game.turn = state.turn
+  game.turn = new Turn(state.turn.board, state.turn.inputs, state.turn.buildings, state.turn.gold, state.turn.enemies, state.turn.lifes)
   game.waveNumber = state.waveNumber
+  game.turn.enemies = game.turn.enemies.map(e => {
+    const enemy = new Enemy(e.type, e.position, e.lvl)
+    Object.assign(enemy, e)
+    return enemy
+  })
 })
 socket.once('game:bootstrap', (init) => {
   ops = init.ops
@@ -38914,46 +38928,177 @@ socket.once('game:bootstrap', (init) => {
   game.waves = init.waves
   PIXI.loader.add(imgResources).load(setup)
 })
+
+var spriteMat
 var tileWidth, tileHeight
+function input (type) {
+  const input = {
+    action: type,
+    tile: SelectedTile,
+    type: 'ARCHER'
+  }
+  game.onInput(input)
+  socket.emit('input', input)
+}
 function setup () {
   var grass = new PIXI.Sprite(
     PIXI.loader.resources['img/grass.png'].texture
   )
-  var path = new PIXI.Sprite(
-    PIXI.loader.resources['img/path.png'].texture
-  )
-  stage.addChild(grass)
-  stage.addChild(path)
+  // stage.addChild(grass)
+  // stage.addChild(path)
   tileWidth = grass.width
   tileHeight = grass.height
   renderer.render(stage)
-
+  spriteMat = Array(game.turn.board.length).fill().map(() => Array(game.turn.board[0].length).fill(null))
+  setStage(game.turn.board)
+  var Relheight = TilePos(game.turn.board.length, game.turn.board.length, game.turn.board[0].length).y
+  var BuildSprite = new PIXI.Sprite(
+    PIXI.loader.resources['img/tower1.png'].texture
+  )
+  var UpgradeSprite = new PIXI.Sprite(
+    PIXI.loader.resources['img/tower3_3.png'].texture
+  )
+  var SellSprite = new PIXI.Sprite(
+    PIXI.loader.resources['img/sell.png'].texture
+  )
+  const HeightMargin = 50
+  const WidthMargin = 250
+  BuildSprite.y = Relheight + HeightMargin
+  BuildSprite.x = 100
+  UpgradeSprite.y = Relheight + HeightMargin
+  UpgradeSprite.x = 100 + WidthMargin
+  SellSprite.y = Relheight + HeightMargin
+  SellSprite.x = 100 + WidthMargin * 2
+  SellSprite.height = BuildSprite.height
+  SellSprite.width = BuildSprite.width
+  BuildSprite.interactive = true
+  BuildSprite.buttonMode = true
+  UpgradeSprite.interactive = true
+  UpgradeSprite.buttonMode = true
+  SellSprite.interactive = true
+  SellSprite.buttonMode = true
+  var goldy = new PIXI.Text('Bling Blings: ', {font:"50px Arial", fill:"gold"})
+  BuildSprite.on('mouseover', (e) => {
+    BuildSprite.tint = 0xFF0000
+  })
+  BuildSprite.on('mouseout', (e) => {
+    BuildSprite.tint = 0xFFFFFF
+  })
+  BuildSprite.on('click', (e) => {
+    input('BUILD')
+  })
+  UpgradeSprite.on('mouseover', (e) => {
+    UpgradeSprite.tint = 0xFF0000
+  })
+  UpgradeSprite.on('mouseout', (e) => {
+    UpgradeSprite.tint = 0xFFFFFF
+  })
+  UpgradeSprite.on('click', (e) => {
+    input('UPGRADE')
+  })
+  SellSprite.on('mouseover', (e) => {
+    SellSprite.tint = 0xFF0000
+  })
+  SellSprite.on('mouseout', (e) => {
+    SellSprite.tint = 0xFFFFFF
+  })
+  SellSprite.on('click', (e) => {
+    input('SELL')
+  })
+  stage.addChild(BuildSprite)
+  stage.addChild(UpgradeSprite)
+  stage.addChild(SellSprite)
   renderLoop()
-  setInterval(game.tick.bind(game), game.ops.timeInterval)
+  setInterval(() => {
+    game.tick()
+    for (let i = 0; i < spriteMat.length; i++) {
+      for (let j = 0; j < spriteMat[0].length; j++) {
+        spriteMat[i][j].removeChildren()
+      }
+    }
+    let arrived = 0
+    game.turn.enemies.forEach(foe => {
+      console.log('ORC')
+      let i = foe.position.i
+      let j = foe.position.j
+      let OrcSprite = new PIXI.Sprite(
+        PIXI.loader.resources['img/orc.png'].texture
+      )
+      OrcSprite.height = 40
+      OrcSprite.width = 30
+      OrcSprite.x += 30 + Math.random()*40
+      OrcSprite.y -= 8 - arrived * 10
+      spriteMat[i][j].addChild(OrcSprite)
+    })
+    game.turn.buildings.forEach(tower => {
+      let i = tower.position.i
+      let j = tower.position.j
+      if (tower.lvl === 1) {
+        let TowerSprite = new PIXI.Sprite(
+          PIXI.loader.resources['img/tower1.png'].texture
+        )
+        TowerSprite.x += 20
+        TowerSprite.y -= 20
+        spriteMat[i][j].addChild(TowerSprite)
+      } else if (tower.lvl === 2) {
+        let TowerSprite1 = new PIXI.Sprite(
+          PIXI.loader.resources['img/tower2_1.png'].texture
+        )
+        TowerSprite1.x += 20
+        TowerSprite1.y -= 20
+        let TowerSprite2 = new PIXI.Sprite(
+          PIXI.loader.resources['img/tower2_2.png'].texture
+        )
+        TowerSprite2.y -= 43
+        TowerSprite2.x -= 4
+        TowerSprite1.addChild(TowerSprite2)
+        spriteMat[i][j].addChild(TowerSprite1)
+      } else {
+
+      }
+    })
+    var gold = new PIXI.Text('Bling Blings: ' + game.turn.gold, {font:"50px Arial", fill:"gold"})
+    goldy.removeChildren();
+    goldy.addChild(gold);
+  }, game.ops.timeInterval)
 }
 
 function renderLoop () {
   requestAnimationFrame(renderLoop)
-  setStage(game.turn.board)
   renderer.render(stage)
 }
-
-function setStage (board) {
+var SelectedTile = {i: -1, j: -1}
+function setStage (board, sprites) {
   for (let a = 0; a < board.length + board[0].length - 1; a++) {
     for (let b = Math.max(0, a - board[0].length + 1); b <= Math.min(a, board.length - 1); b++) {
       var pos = TilePos(board.length, b, a - b)
-      var sprite
       if (board[b][a - b] === C.BUILDABLE_CELL) {
-        sprite = new PIXI.Sprite(PIXI.loader.resources['img/grass.png'].texture)
+        spriteMat[b][a - b] = new PIXI.Sprite(PIXI.loader.resources['img/grass.png'].texture)
+        spriteMat[b][a - b].interactive = true
+        spriteMat[b][a - b].buttonMode = true
+        spriteMat[b][a - b].on('mouseover', (e) => {
+          spriteMat[b][a - b].tint = 0x00FF00
+        })
+        spriteMat[b][a - b].on('mouseout', (e) => {
+          if (!(SelectedTile.i === b && SelectedTile.j === a - b)) spriteMat[b][a - b].tint = 0xFFFFFF
+          else spriteMat[b][a - b].tint = 0xFF0000
+        })
+        spriteMat[b][a - b].on('click', (e) => {
+          if (SelectedTile.i !== -1 && SelectedTile.j !== -1) spriteMat[SelectedTile.i][SelectedTile.j].tint = 0xFFFFFF
+          spriteMat[b][a - b].tint = 0xFF0000
+          SelectedTile = {i: b, j: a - b}
+          console.log(SelectedTile)
+        })
       } else if (board[b][a - b] === C.PATH_CELL) {
-        sprite = new PIXI.Sprite(PIXI.loader.resources['img/path.png'].texture)
-      } else {
-        sprite = new PIXI.Sprite(PIXI.loader.resources['img/tower1.png'].texture)
+        spriteMat[b][a - b] = new PIXI.Sprite(PIXI.loader.resources['img/path.png'].texture)
+        pos.y += 10
+      } else if (board[b][a - b] === C.END_CELL) {
+        spriteMat[b][a - b] = new PIXI.Sprite(PIXI.loader.resources['img/chrystal.png'].texture)
+        pos.y -= 15
       }
-      sprite.x = pos.x
-      sprite.y = pos.y
-      stage.addChild(sprite)
-      console.log('Adding Sprite')
+      spriteMat[b][a - b].x = pos.x
+      spriteMat[b][a - b].y = pos.y
+      stage.addChild(spriteMat[b][a - b])
     }
   }
 }
@@ -38964,7 +39109,7 @@ function TilePos (boardi, i, j) {
   return {x: x, y: y}
 }
 
-},{"./Game.js":191,"./constants.js":194,"pixi.js":142,"socket.io-client":174}],194:[function(require,module,exports){
+},{"./Enemy.js":190,"./Game.js":191,"./Turn.js":192,"./constants.js":194,"pixi.js":142,"socket.io-client":174}],194:[function(require,module,exports){
 module.exports = {
   BUILDABLE_CELL: -1,
   BUILT_CELL: -2,

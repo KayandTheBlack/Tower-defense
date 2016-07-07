@@ -70,12 +70,14 @@ class Game {
     this.sockets.forEach((socket) => socket && socket.emit('game:state', state))
   }
   tick () {
-    if (elemsInArray(this.sockets) === 0) {
+    if (Object.keys(this.players).length > 1) {
       console.log('Not enough players!')
       return
     }
+    // console.log('tick')
     if (this.foesToSpawn.length !== 0) {
       this.turn.enemies.push(new Enemy(this.foesToSpawn[0].type, this.spawn, Math.floor(this.waveNumber / this.waves.length + this.foesToSpawn[0].lvlmod)))
+      this.foesToSpawn.splice(0, 1)
     }
     this.turn = this.turn.evolve()
     if (this.turn.enemies.length === 0) {
