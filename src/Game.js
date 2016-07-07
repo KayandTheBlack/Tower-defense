@@ -1,7 +1,27 @@
+'use strict'
 var { Turn } = require('./Turn.js')
 const wave = require('./wave.js')
 const { Enemy } = require('./Enemy.js')
 // const C = require('./constants.js')
+
+var board1 = [
+  [-1, -1, -1, -1, -3],
+  [0, 0, 0, -1, 0],
+  [-1, -1, 0, -1, 0],
+  [-1, -1, 0, 0, 0],
+  [-1, -1, -1, -1, -1]
+]
+var board = [
+  [-1, -1, -1, -1, -1, -1,  -1],
+  [ 0,  0,  0, -1,  0,  0,  0],
+  [-1, -1,  0, -1,  0, -1,  0],
+  [-1, -1,  0,  0,  0, -1,  0],
+  [-1, -1, -1, -1, -1, -1,  0],
+  [-3,  0, -1, -1, -1, -1,  0],
+  [-1,  0,  0,  0,  0, -1,  0],
+  [-1, -1, -1, -1,  0,  0,  0],
+  [-1, -1, -1, -1, -1, -1, -1]
+]
 function elemsInArray (array) {
   var length = array.length
   for (let i = 0; i < array.length; i++) {
@@ -26,13 +46,7 @@ class Game {
     this.waveNumber = 0
     this.sockets = []
     this.spawn = {i: 1, j: 0}
-    var board = [
-      [-1, -1, -1, -1, -3],
-      [0, 0, 0, -1, 0],
-      [-1, -1, 0, -1, 0],
-      [-1, -1, 0, 0, 0],
-      [-1, -1, -1, -1, -1]
-    ]
+    
     var inputs = Array(ops.MAX_PLAYERS).fill(null)
     this.ops = ops
     this.players = {}
@@ -65,14 +79,26 @@ class Game {
   sendState () {
     const state = {
       turn: this.turn,
-      waveNumber: this.waveNumber
+      waveNumber: this.waveNumber,
+      lifes: this.lifes
     }
     this.sockets.forEach((socket) => socket && socket.emit('game:state', state))
   }
+  restart () {
+    this.waveNumber = 0
+    var inputs = Array(this.ops.MAX_PLAYERS).fill(null)
+    this.waves = wave
+    this.foesToSpawn = wave[0]
+    this.turn = new Turn(board, inputs, [], this.ops.gold, [], this.ops.lifes)
+  }
   tick () {
-    if (Object.keys(this.players).length > 1) {
+    if (this.players !== 'CLIENT' && elemsInArray(this.sockets) === 0) {
       console.log('Not enough players!')
+      console.log(this.players)
       return
+    }
+    if (this.turn.lifes <= 0) {
+      this.restart()
     }
     // console.log('tick')
     if (this.foesToSpawn.length !== 0) {

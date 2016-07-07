@@ -1,4 +1,5 @@
 /* global requestAnimationFrame */
+'use strict'
 const PIXI = require('pixi.js')
 const { Game } = require('./Game.js')
 const { Turn } = require('./Turn.js')
@@ -21,7 +22,8 @@ var imgResources = [
   'img/tower3_3.png',
   'img/sell.png',
   'img/chrystal.png',
-  'img/orc.png'
+  'img/orc.png',
+  'img/trees_2.png'
 ]
 
 // LOAD IMAGES
@@ -35,12 +37,14 @@ socket.on('game:state', (state) => {
     Object.assign(enemy, e)
     return enemy
   })
+  game.lifes = state.lifes
 })
 socket.once('game:bootstrap', (init) => {
   ops = init.ops
   game = new Game(ops)
   game.spawn = init.spawn
   game.waves = init.waves
+  game.players = 'CLIENT'
   PIXI.loader.add(imgResources).load(setup)
 })
 
@@ -55,17 +59,10 @@ function input (type) {
   game.onInput(input)
   socket.emit('input', input)
 }
-function setup () {
-  var grass = new PIXI.Sprite(
-    PIXI.loader.resources['img/grass.png'].texture
-  )
-  // stage.addChild(grass)
-  // stage.addChild(path)
-  tileWidth = grass.width
-  tileHeight = grass.height
-  renderer.render(stage)
-  spriteMat = Array(game.turn.board.length).fill().map(() => Array(game.turn.board[0].length).fill(null))
-  setStage(game.turn.board)
+var goldy = new PIXI.Text('Bling Blings: ', {font: '30px Arial', fill: 'gold'})
+var lify = new PIXI.Text('Lifes: ', {font: '30px Arial', fill: 'red'})
+var wavy = new PIXI.Text('WAVE: ', {font: '30px Arial', fill: 'red'})
+function GUI () {
   var Relheight = TilePos(game.turn.board.length, game.turn.board.length, game.turn.board[0].length).y
   var BuildSprite = new PIXI.Sprite(
     PIXI.loader.resources['img/tower1.png'].texture
@@ -92,7 +89,6 @@ function setup () {
   UpgradeSprite.buttonMode = true
   SellSprite.interactive = true
   SellSprite.buttonMode = true
-  var goldy = new PIXI.Text('Bling Blings: ', {font:"50px Arial", fill:"gold"})
   BuildSprite.on('mouseover', (e) => {
     BuildSprite.tint = 0xFF0000
   })
@@ -123,6 +119,26 @@ function setup () {
   stage.addChild(BuildSprite)
   stage.addChild(UpgradeSprite)
   stage.addChild(SellSprite)
+
+  lify.y += 30
+  wavy.y += 75
+  stage.addChild(goldy)
+  stage.addChild(lify)
+  stage.addChild(wavy)
+}
+function setup () {
+  var grass = new PIXI.Sprite(
+    PIXI.loader.resources['img/grass.png'].texture
+  )
+  // stage.addChild(grass)
+  // stage.addChild(path)
+  tileWidth = grass.width
+  tileHeight = grass.height
+  renderer.render(stage)
+  spriteMat = Array(game.turn.board.length).fill().map(() => Array(game.turn.board[0].length).fill(null))
+  setStage(game.turn.board)
+  GUI()
+  
   renderLoop()
   setInterval(() => {
     game.tick()
@@ -133,7 +149,6 @@ function setup () {
     }
     let arrived = 0
     game.turn.enemies.forEach(foe => {
-      console.log('ORC')
       let i = foe.position.i
       let j = foe.position.j
       let OrcSprite = new PIXI.Sprite(
@@ -141,13 +156,17 @@ function setup () {
       )
       OrcSprite.height = 40
       OrcSprite.width = 30
-      OrcSprite.x += 30 + Math.random()*40
+      OrcSprite.x += 30 + Math.random() * 40
       OrcSprite.y -= 8 - arrived * 10
       spriteMat[i][j].addChild(OrcSprite)
     })
     game.turn.buildings.forEach(tower => {
       let i = tower.position.i
       let j = tower.position.j
+      spriteMat[i][j].texture = PIXI.loader.resources['img/grass.png'].texture
+      let pos = TilePos(game.turn.board.length, i, j)
+      spriteMat[i][j].x = pos.x
+      spriteMat[i][j].y = pos.y
       if (tower.lvl === 1) {
         let TowerSprite = new PIXI.Sprite(
           PIXI.loader.resources['img/tower1.png'].texture
@@ -169,12 +188,38 @@ function setup () {
         TowerSprite1.addChild(TowerSprite2)
         spriteMat[i][j].addChild(TowerSprite1)
       } else {
-
+        let TowerSprite1 = new PIXI.Sprite(
+          PIXI.loader.resources['img/tower3_1.png'].texture
+        )
+        TowerSprite1.x += 20
+        TowerSprite1.y -= 20
+        let TowerSprite2 = new PIXI.Sprite(
+          PIXI.loader.resources['img/tower3_2.png'].texture
+        )
+        TowerSprite2.y -= 32
+        TowerSprite2.x += 11
+        let TowerSprite3 = new PIXI.Sprite(
+          PIXI.loader.resources['img/tower3_3.png'].texture
+        )
+        TowerSprite3.y -= 60
+        TowerSprite3.x -= 4
+        TowerSprite2.addChild(TowerSprite3)
+        TowerSprite1.addChild(TowerSprite2)
+        spriteMat[i][j].addChild(TowerSprite1)
       }
     })
-    var gold = new PIXI.Text('Bling Blings: ' + game.turn.gold, {font:"50px Arial", fill:"gold"})
-    goldy.removeChildren();
-    goldy.addChild(gold);
+    var gold = new PIXI.Text(Math.round(game.turn.gold * 4) / 4, {font: '30px Arial', fill: 'gold'})
+    gold.x += 175
+    goldy.removeChildren()
+    goldy.addChild(gold)
+    var life = new PIXI.Text(game.turn.lifes, {font: '30px Arial', fill: 'red'})
+    life.x += 85
+    lify.removeChildren()
+    lify.addChild(life)
+    var wave = new PIXI.Text(game.waveNumber + 1, {font: '30px Arial', fill: 'red'})
+    wave.x += 125
+    wavy.removeChildren()
+    wavy.addChild(wave)
   }, game.ops.timeInterval)
 }
 
@@ -188,7 +233,12 @@ function setStage (board, sprites) {
     for (let b = Math.max(0, a - board[0].length + 1); b <= Math.min(a, board.length - 1); b++) {
       var pos = TilePos(board.length, b, a - b)
       if (board[b][a - b] === C.BUILDABLE_CELL) {
-        spriteMat[b][a - b] = new PIXI.Sprite(PIXI.loader.resources['img/grass.png'].texture)
+        const type = Math.random()
+        if (type < 0.90) spriteMat[b][a - b] = new PIXI.Sprite(PIXI.loader.resources['img/grass.png'].texture)
+        else {
+          spriteMat[b][a - b] = new PIXI.Sprite(PIXI.loader.resources['img/trees_2.png'].texture)
+          pos.y -= 21
+        }
         spriteMat[b][a - b].interactive = true
         spriteMat[b][a - b].buttonMode = true
         spriteMat[b][a - b].on('mouseover', (e) => {
@@ -206,7 +256,7 @@ function setStage (board, sprites) {
         })
       } else if (board[b][a - b] === C.PATH_CELL) {
         spriteMat[b][a - b] = new PIXI.Sprite(PIXI.loader.resources['img/path.png'].texture)
-        pos.y += 10
+        pos.y += 15
       } else if (board[b][a - b] === C.END_CELL) {
         spriteMat[b][a - b] = new PIXI.Sprite(PIXI.loader.resources['img/chrystal.png'].texture)
         pos.y -= 15
@@ -219,7 +269,7 @@ function setStage (board, sprites) {
 }
 
 function TilePos (boardi, i, j) {
-  let y = 0.65 * (i + j) * tileHeight / 2
+  let y = 0.66 * (i + j) * tileHeight / 2
   let x = (boardi - i + j) * tileWidth / 2
   return {x: x, y: y}
 }

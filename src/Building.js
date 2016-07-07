@@ -1,3 +1,4 @@
+'use strict'
 const C = require('./constants.js')
 class Building {
   constructor (type, position) {

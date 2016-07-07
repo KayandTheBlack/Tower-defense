@@ -1,3 +1,4 @@
+'use strict'
 module.exports = {
   BUILDABLE_CELL: -1,
   BUILT_CELL: -2,
@@ -36,7 +37,7 @@ module.exports = {
     BASELIFE: 2
   },
   TANK: {
-    MOVSPEED: 10,
+    MOVSPEED: 6,
     BASELIFE: 8
   }
 }

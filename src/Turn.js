@@ -1,6 +1,6 @@
+'use strict'
 const C = require('./constants.js')
 const { Building } = require('./Building.js')
-const { Enemy } = require('./Enemy.js')
 const clone = require('clone')
 
 function searchPosInVector (position, vector) {
