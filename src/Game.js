@@ -36,6 +36,7 @@ class Game {
     var inputs = Array(ops.MAX_PLAYERS).fill(null)
     this.ops = ops
     this.players = {}
+    this.waves = wave
     this.foesToSpawn = wave[0]
     this.turn = new Turn(board, inputs, [], ops.gold, [], ops.lifes)
   }
@@ -46,6 +47,11 @@ class Game {
     }
     var pos = insert(socket, this.sockets)
     this.players[socket.id] = pos
+    this.sockets[pos].emit('game:bootstrap', {
+      ops: this.ops,
+      spawn: this.spawn,
+      waves: this.waves
+    })
   }
   onPlayerLeave (socket) {
     const playernumber = this.players[socket.id]
@@ -59,10 +65,7 @@ class Game {
   sendState () {
     const state = {
       turn: this.turn,
-      waveNumber: this.waveNumber,
-      spawn: this.spawn,
-      ops: this.ops,
-      foesToSpawn: this.foesToSpawn
+      waveNumber: this.waveNumber
     }
     this.sockets.forEach((socket) => socket && socket.emit('game:state', state))
   }
@@ -72,12 +75,12 @@ class Game {
       return
     }
     if (this.foesToSpawn.length !== 0) {
-      this.turn.enemies.push(new Enemy(this.foesToSpawn[0].type, this.spawn, Math.floor(this.waveNumber / wave.length + this.foesToSpawn[0].lvlmod)))
+      this.turn.enemies.push(new Enemy(this.foesToSpawn[0].type, this.spawn, Math.floor(this.waveNumber / this.waves.length + this.foesToSpawn[0].lvlmod)))
     }
     this.turn = this.turn.evolve()
     if (this.turn.enemies.length === 0) {
       this.waveNumber++
-      this.foesToSpawn = wave[this.waveNumber % wave.length]
+      this.foesToSpawn = this.waves[this.waveNumber % this.waves.length]
       console.log('Wave survived')
     }
     this.sendState()
