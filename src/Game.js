@@ -2,6 +2,7 @@
 var { Turn } = require('./Turn.js')
 const wave = require('./wave.js')
 const { Enemy } = require('./Enemy.js')
+const clone = require('clone')
 // const C = require('./constants.js')
 
 var board1 = [
@@ -51,7 +52,7 @@ class Game {
     this.ops = ops
     this.players = {}
     this.waves = wave
-    this.foesToSpawn = wave[0]
+    this.foesToSpawn = clone(wave[0])
     this.turn = new Turn(board, inputs, [], ops.gold, [], ops.lifes)
   }
   onPlayerJoin (socket) {
@@ -95,6 +96,7 @@ class Game {
     if (this.players !== 'CLIENT' && elemsInArray(this.sockets) === 0) {
       console.log('Not enough players!')
       console.log(this.players)
+      this.restart()
       return
     }
     if (this.turn.lifes <= 0) {
@@ -102,14 +104,16 @@ class Game {
     }
     // console.log('tick')
     if (this.foesToSpawn.length !== 0) {
-      this.turn.enemies.push(new Enemy(this.foesToSpawn[0].type, this.spawn, Math.floor(this.waveNumber / this.waves.length + this.foesToSpawn[0].lvlmod)))
+      this.turn.enemies.push(new Enemy(this.foesToSpawn[0].type, this.spawn, Math.floor(this.waveNumber / 5 + this.foesToSpawn[0].lvlmod)))
       this.foesToSpawn.splice(0, 1)
     }
     this.turn = this.turn.evolve()
     if (this.turn.enemies.length === 0) {
       this.waveNumber++
-      this.foesToSpawn = this.waves[this.waveNumber % this.waves.length]
+      this.foesToSpawn = clone(this.waves[this.waveNumber % this.waves.length])
       console.log('Wave survived')
+      // console.log('Corresponding to wave: ' + this.waveNumber % this.waves.length)
+      // console.log(JSON.stringify(this.foesToSpawn))
     }
     this.sendState()
   }

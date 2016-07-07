@@ -38,6 +38,6 @@ module.exports = {
   },
   TANK: {
     MOVSPEED: 6,
-    BASELIFE: 8
+    BASELIFE: 20
   }
 }

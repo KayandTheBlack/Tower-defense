@@ -7,7 +7,7 @@ const { Game } = require('./Game.js')
 
 const GAMEOPS = {
   MAX_PLAYERS: 4,
-  timeInterval: 1000,
+  timeInterval: 700,
   gold: 200,
   lifes: 5
 }

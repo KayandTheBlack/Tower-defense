@@ -38583,8 +38583,8 @@ class Enemy {
     }
     this.id = i++
     this.lvl = lvl
-    this.cd = C[type].MOVSPEED
-    this.maxCD = C[type].MOVSPEED
+    this.cd = C[type].MOVSPEED * (1 - lvl / 4)
+    this.maxCD = C[type].MOVSPEED * (1 - lvl / 4)
     this.type = type
     this.life = C[type].BASELIFE * (1 + lvl / 2)
   }
@@ -38599,6 +38599,7 @@ exports.Enemy = Enemy
 var { Turn } = require('./Turn.js')
 const wave = require('./wave.js')
 const { Enemy } = require('./Enemy.js')
+const clone = require('clone')
 // const C = require('./constants.js')
 
 var board1 = [
@@ -38648,7 +38649,7 @@ class Game {
     this.ops = ops
     this.players = {}
     this.waves = wave
-    this.foesToSpawn = wave[0]
+    this.foesToSpawn = clone(wave[0])
     this.turn = new Turn(board, inputs, [], ops.gold, [], ops.lifes)
   }
   onPlayerJoin (socket) {
@@ -38692,6 +38693,7 @@ class Game {
     if (this.players !== 'CLIENT' && elemsInArray(this.sockets) === 0) {
       console.log('Not enough players!')
       console.log(this.players)
+      this.restart()
       return
     }
     if (this.turn.lifes <= 0) {
@@ -38699,21 +38701,23 @@ class Game {
     }
     // console.log('tick')
     if (this.foesToSpawn.length !== 0) {
-      this.turn.enemies.push(new Enemy(this.foesToSpawn[0].type, this.spawn, Math.floor(this.waveNumber / this.waves.length + this.foesToSpawn[0].lvlmod)))
+      this.turn.enemies.push(new Enemy(this.foesToSpawn[0].type, this.spawn, Math.floor(this.waveNumber / 5 + this.foesToSpawn[0].lvlmod)))
       this.foesToSpawn.splice(0, 1)
     }
     this.turn = this.turn.evolve()
     if (this.turn.enemies.length === 0) {
       this.waveNumber++
-      this.foesToSpawn = this.waves[this.waveNumber % this.waves.length]
+      this.foesToSpawn = clone(this.waves[this.waveNumber % this.waves.length])
       console.log('Wave survived')
+      // console.log('Corresponding to wave: ' + this.waveNumber % this.waves.length)
+      // console.log(JSON.stringify(this.foesToSpawn))
     }
     this.sendState()
   }
 }
 exports.Game = Game
 
-},{"./Enemy.js":189,"./Turn.js":191,"./wave.js":194}],191:[function(require,module,exports){
+},{"./Enemy.js":189,"./Turn.js":191,"./wave.js":194,"clone":10}],191:[function(require,module,exports){
 'use strict'
 const C = require('./constants.js')
 const { Building } = require('./Building.js')
@@ -38915,6 +38919,7 @@ const PIXI = require('pixi.js')
 const { Game } = require('./Game.js')
 const { Turn } = require('./Turn.js')
 const { Enemy } = require('./Enemy.js')
+const { Building } = require('./Building.js')
 const socket = require('socket.io-client')()
 const C = require('./constants.js')
 // CANVAS AND RENDERER
@@ -38934,7 +38939,8 @@ var imgResources = [
   'img/sell.png',
   'img/chrystal.png',
   'img/orc.png',
-  'img/trees_2.png'
+  'img/trees_2.png',
+  'img/tank.png',
 ]
 
 // LOAD IMAGES
@@ -38947,6 +38953,11 @@ socket.on('game:state', (state) => {
     const enemy = new Enemy(e.type, e.position, e.lvl)
     Object.assign(enemy, e)
     return enemy
+  })
+  game.turn.buildings = game.turn.buildings.map(e => {
+    const building = new Building(e.type, e.position)
+    Object.assign(building, e)
+    return building
   })
   game.lifes = state.lifes
 })
@@ -38973,15 +38984,18 @@ function input (type) {
 var goldy = new PIXI.Text('Bling Blings: ', {font: '30px Arial', fill: 'gold'})
 var lify = new PIXI.Text('Lifes: ', {font: '30px Arial', fill: 'red'})
 var wavy = new PIXI.Text('WAVE: ', {font: '30px Arial', fill: 'red'})
+var BuildSprite
+var UpgradeSprite
+var SellSprite
 function GUI () {
   var Relheight = TilePos(game.turn.board.length, game.turn.board.length, game.turn.board[0].length).y
-  var BuildSprite = new PIXI.Sprite(
+  BuildSprite = new PIXI.Sprite(
     PIXI.loader.resources['img/tower1.png'].texture
   )
-  var UpgradeSprite = new PIXI.Sprite(
+  UpgradeSprite = new PIXI.Sprite(
     PIXI.loader.resources['img/tower3_3.png'].texture
   )
-  var SellSprite = new PIXI.Sprite(
+  SellSprite = new PIXI.Sprite(
     PIXI.loader.resources['img/sell.png'].texture
   )
   const HeightMargin = 50
@@ -39037,6 +39051,16 @@ function GUI () {
   stage.addChild(lify)
   stage.addChild(wavy)
 }
+function searchPosInVector (position, vector) {
+  var it = 0
+  var found = false
+  while (!found && it < vector.length) {
+    if (vector[it].position.i === position.i && vector[it].position.j === position.j) {
+      found = true
+    } else it++
+  }
+  return it
+}
 function setup () {
   var grass = new PIXI.Sprite(
     PIXI.loader.resources['img/grass.png'].texture
@@ -39062,11 +39086,27 @@ function setup () {
     game.turn.enemies.forEach(foe => {
       let i = foe.position.i
       let j = foe.position.j
-      let OrcSprite = new PIXI.Sprite(
-        PIXI.loader.resources['img/orc.png'].texture
-      )
-      OrcSprite.height = 40
-      OrcSprite.width = 30
+      let OrcSprite 
+      if(foe.type === 'BASIC') {
+        OrcSprite = new PIXI.Sprite(
+          PIXI.loader.resources['img/orc.png'].texture
+        )
+        OrcSprite.height = 40
+        OrcSprite.width = 30
+      } else if (foe.type === 'TANK') {
+        OrcSprite = new PIXI.Sprite(
+          PIXI.loader.resources['img/tank.png'].texture
+        )
+        OrcSprite.height = 100
+        OrcSprite.width = 75
+        OrcSprite.y -= 40
+      } else if (foe.type === 'QUICK') {
+        OrcSprite = new PIXI.Sprite(
+          PIXI.loader.resources['img/orc.png'].texture
+        )
+        OrcSprite.height = 30
+        OrcSprite.width = 24
+      }
       OrcSprite.x += 30 + Math.random() * 40
       OrcSprite.y -= 8 - arrived * 10
       spriteMat[i][j].addChild(OrcSprite)
@@ -39077,7 +39117,7 @@ function setup () {
       spriteMat[i][j].texture = PIXI.loader.resources['img/grass.png'].texture
       let pos = TilePos(game.turn.board.length, i, j)
       spriteMat[i][j].x = pos.x
-      spriteMat[i][j].y = pos.y
+      spriteMat[i][j].y = pos.y + 40
       if (tower.lvl === 1) {
         let TowerSprite = new PIXI.Sprite(
           PIXI.loader.resources['img/tower1.png'].texture
@@ -39131,6 +39171,27 @@ function setup () {
     wave.x += 125
     wavy.removeChildren()
     wavy.addChild(wave)
+    var TowerCost = new PIXI.Text(C.COST.ARCHER, {font: '30px Arial', fill: 'gold'})
+    var UpCost, SellCost
+    let it = 0
+    it = searchPosInVector (SelectedTile, game.turn.buildings)
+    UpCost = new PIXI.Text(0, {font: '30px Arial', fill: 'gold'})
+    SellCost = new PIXI.Text(0, {font: '30px Arial', fill: 'gold'})
+    if (it !== game.turn.buildings.length) {
+      UpCost = new PIXI.Text(game.turn.buildings[it].upgradeCost(), {font: '30px Arial', fill: 'gold'})
+      SellCost = new PIXI.Text(game.turn.buildings[it].SellCost(), {font: '30px Arial', fill: 'gold'})
+    }
+    TowerCost.y += 100
+    UpCost.y += 100
+    SellCost.y += 100
+    SellCost.width = 100000
+    SellCost.height = 100000
+    BuildSprite.removeChildren()
+    BuildSprite.addChild(TowerCost)
+    UpgradeSprite.removeChildren()
+    UpgradeSprite.addChild(UpCost)
+    SellSprite.removeChildren()
+    SellSprite.addChild(SellCost)
   }, game.ops.timeInterval)
 }
 
@@ -39173,7 +39234,7 @@ function setStage (board, sprites) {
         pos.y -= 15
       }
       spriteMat[b][a - b].x = pos.x
-      spriteMat[b][a - b].y = pos.y
+      spriteMat[b][a - b].y = pos.y +  40
       stage.addChild(spriteMat[b][a - b])
     }
   }
@@ -39185,7 +39246,7 @@ function TilePos (boardi, i, j) {
   return {x: x, y: y}
 }
 
-},{"./Enemy.js":189,"./Game.js":190,"./Turn.js":191,"./constants.js":193,"pixi.js":140,"socket.io-client":172}],193:[function(require,module,exports){
+},{"./Building.js":188,"./Enemy.js":189,"./Game.js":190,"./Turn.js":191,"./constants.js":193,"pixi.js":140,"socket.io-client":172}],193:[function(require,module,exports){
 'use strict'
 module.exports = {
   BUILDABLE_CELL: -1,
@@ -39226,7 +39287,7 @@ module.exports = {
   },
   TANK: {
     MOVSPEED: 6,
-    BASELIFE: 8
+    BASELIFE: 20
   }
 }
 
