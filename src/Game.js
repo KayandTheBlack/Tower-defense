@@ -5,27 +5,7 @@ const { Enemy } = require('./Enemy.js')
 const clone = require('clone')
 // const C = require('./constants.js')
 
-const board1 = [
-  [-1, -1, -1, -1, -3],
-  [0, 0, 0, -1, 0],
-  [-1, -1, 0, -1, 0],
-  [-1, -1, 0, 0, 0],
-  [-1, -1, -1, -1, -1]
-]
-const board2 = require('./THEMAP.js')
-const board = [
-  [-1, -1, -1, -1, -1, -1, -1],
-  [ 0,  0,  0, -1,  0,  0,  0],
-  [-1, -1,  0, -1,  0, -1,  0],
-  [-1, -1,  0,  0,  0, -1,  0],
-  [-1, -1, -1, -1, -1, -1,  0],
-  [-3,  0, -1, -1, -1, -1,  0],
-  [-1,  0,  0,  0,  0, -1,  0],
-  [-1, -1, -1, -1,  0,  0,  0],
-  [-1, -1, -1, -1, -1, -1, -1]
-]
-const spawn2 = {i: 15, j: 1}
-const spawn = {i: 1, j: 0}
+const maps = require('./MAPS.js')
 function elemsInArray (array) {
   var length = array.length
   for (let i = 0; i < array.length; i++) {
@@ -49,15 +29,13 @@ class Game {
   constructor (ops) {
     this.waveNumber = 0
     this.sockets = []
-    this.spawn = spawn
-
+    this.spawns = maps[ops.map].spawns
     var inputs = Array(ops.MAX_PLAYERS).fill(null)
     this.ops = ops
     this.players = {}
     this.waves = wave
-    console.log(this.waves)
     this.foesToSpawn = clone(wave[0])
-    this.turn = new Turn(board, inputs, [], ops.gold, [], ops.lifes)
+    this.turn = new Turn(maps[ops.map].board, inputs, [], ops.gold, [], ops.lifes)
   }
   onPlayerJoin (socket) {
     if (elemsInArray(this.sockets) === this.ops.MAX_PLAYERS) {
@@ -68,7 +46,7 @@ class Game {
     this.players[socket.id] = pos
     this.sockets[pos].emit('game:bootstrap', {
       ops: this.ops,
-      spawn: this.spawn,
+      spawns: this.spawns,
       waves: this.waves
     })
   }
@@ -94,7 +72,7 @@ class Game {
     var inputs = Array(this.ops.MAX_PLAYERS).fill(null)
     this.waves = wave
     this.foesToSpawn = wave[0]
-    this.turn = new Turn(board, inputs, [], this.ops.gold, [], this.ops.lifes)
+    this.turn = new Turn(maps[this.ops.map].board, inputs, [], this.ops.gold, [], this.ops.lifes)
   }
   tick () {
     if (this.players !== 'CLIENT' && elemsInArray(this.sockets) === 0) {
@@ -108,7 +86,9 @@ class Game {
     }
     // console.log('tick')
     if (this.foesToSpawn.length !== 0) {
-      this.turn.enemies.push(new Enemy(this.foesToSpawn[0].type, this.spawn, Math.floor(this.waveNumber / 5 + this.foesToSpawn[0].lvlmod)))
+      this.spawns.forEach(spawn =>{
+        this.turn.enemies.push(new Enemy(this.foesToSpawn[0].type, spawn, Math.floor(this.waveNumber / 5 + this.foesToSpawn[0].lvlmod)))
+      })
       this.foesToSpawn.splice(0, 1)
     }
     this.turn = this.turn.evolve()

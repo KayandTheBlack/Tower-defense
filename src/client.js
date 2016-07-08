@@ -52,7 +52,7 @@ socket.once('game:bootstrap', (init) => {
   game = new Game(ops)
   if (game.turn.board.length >= 20) BOARD.scale = {x: 0.5, y: 0.5}
   else if (game.turn.board.length >= 10) BOARD.scale = {x: 0.8, y: 0.8}
-  game.spawn = init.spawn
+  game.spawns = init.spawns
   game.waves = init.waves
   game.players = 'CLIENT'
   PIXI.loader.add(imgResources).load(setup)

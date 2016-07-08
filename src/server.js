@@ -9,7 +9,8 @@ const GAMEOPS = {
   MAX_PLAYERS: 4,
   timeInterval: 700,
   gold: 200,
-  lifes: 5
+  lifes: 5,
+  map: 'DOUBLE'
 }
 
 const game = new Game(GAMEOPS)
