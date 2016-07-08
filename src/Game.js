@@ -5,15 +5,16 @@ const { Enemy } = require('./Enemy.js')
 const clone = require('clone')
 // const C = require('./constants.js')
 
-var board1 = [
+const board1 = [
   [-1, -1, -1, -1, -3],
   [0, 0, 0, -1, 0],
   [-1, -1, 0, -1, 0],
   [-1, -1, 0, 0, 0],
   [-1, -1, -1, -1, -1]
 ]
-var board = [
-  [-1, -1, -1, -1, -1, -1,  -1],
+const board2 = require('./THEMAP.js')
+const board = [
+  [-1, -1, -1, -1, -1, -1, -1],
   [ 0,  0,  0, -1,  0,  0,  0],
   [-1, -1,  0, -1,  0, -1,  0],
   [-1, -1,  0,  0,  0, -1,  0],
@@ -23,6 +24,8 @@ var board = [
   [-1, -1, -1, -1,  0,  0,  0],
   [-1, -1, -1, -1, -1, -1, -1]
 ]
+const spawn2 = {i: 15, j: 1}
+const spawn = {i: 1, j: 0}
 function elemsInArray (array) {
   var length = array.length
   for (let i = 0; i < array.length; i++) {
@@ -46,12 +49,13 @@ class Game {
   constructor (ops) {
     this.waveNumber = 0
     this.sockets = []
-    this.spawn = {i: 1, j: 0}
-    
+    this.spawn = spawn
+
     var inputs = Array(ops.MAX_PLAYERS).fill(null)
     this.ops = ops
     this.players = {}
     this.waves = wave
+    console.log(this.waves)
     this.foesToSpawn = clone(wave[0])
     this.turn = new Turn(board, inputs, [], ops.gold, [], ops.lifes)
   }

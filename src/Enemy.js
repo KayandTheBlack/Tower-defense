@@ -15,8 +15,9 @@ class Enemy {
     }
     this.id = i++
     this.lvl = lvl
-    this.cd = C[type].MOVSPEED * (1 - lvl / 4)
-    this.maxCD = C[type].MOVSPEED * (1 - lvl / 4)
+    console.log(type)
+    this.cd = C[type].MOVSPEED * (1 - lvl / 10)
+    this.maxCD = C[type].MOVSPEED * (1 - lvl / 10)
     this.type = type
     this.life = C[type].BASELIFE * (1 + lvl / 2)
   }

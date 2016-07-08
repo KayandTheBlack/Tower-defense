@@ -11,7 +11,7 @@ const C = require('./constants.js')
 var renderer = PIXI.autoDetectRenderer(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.view)
 var stage = new PIXI.Container()
-stage.scale = {x: 3, y: 3}
+// stage.scale = {x: 3, y: 3}
 var imgResources = [
   'img/grass.png',
   'img/path.png',
@@ -26,6 +26,7 @@ var imgResources = [
   'img/orc.png',
   'img/trees_2.png',
   'img/tank.png',
+  'img/panel_beige.png'
 ]
 
 // LOAD IMAGES
@@ -49,6 +50,8 @@ socket.on('game:state', (state) => {
 socket.once('game:bootstrap', (init) => {
   ops = init.ops
   game = new Game(ops)
+  if (game.turn.board.length >= 20) BOARD.scale = {x: 0.5, y: 0.5}
+  else if (game.turn.board.length >= 10) BOARD.scale = {x: 0.8, y: 0.8}
   game.spawn = init.spawn
   game.waves = init.waves
   game.players = 'CLIENT'
@@ -66,13 +69,18 @@ function input (type) {
   game.onInput(input)
   socket.emit('input', input)
 }
-var goldy = new PIXI.Text('Bling Blings: ', {font: '30px Arial', fill: 'gold'})
-var lify = new PIXI.Text('Lifes: ', {font: '30px Arial', fill: 'red'})
-var wavy = new PIXI.Text('WAVE: ', {font: '30px Arial', fill: 'red'})
+var GUIMANAGER = new PIXI.Container()
+var goldy = new PIXI.Text('Bling Blings: ', {font: '50px Arial', fill: 'gold'})
+var lify = new PIXI.Text('Lifes: ', {font: '50px Arial', fill: 'red'})
+var wavy = new PIXI.Text('WAVE: ', {font: '50px Arial', fill: 'red'})
 var BuildSprite
 var UpgradeSprite
 var SellSprite
+var BOARD = new PIXI.Container()
 function GUI () {
+  var actionMenu = new PIXI.Sprite(
+    PIXI.loader.resources['img/panel_beige.png'].texture
+  )
   var Relheight = TilePos(game.turn.board.length, game.turn.board.length, game.turn.board[0].length).y
   BuildSprite = new PIXI.Sprite(
     PIXI.loader.resources['img/tower1.png'].texture
@@ -83,16 +91,6 @@ function GUI () {
   SellSprite = new PIXI.Sprite(
     PIXI.loader.resources['img/sell.png'].texture
   )
-  const HeightMargin = 50
-  const WidthMargin = 250
-  BuildSprite.y = Relheight + HeightMargin
-  BuildSprite.x = 100
-  UpgradeSprite.y = Relheight + HeightMargin
-  UpgradeSprite.x = 100 + WidthMargin
-  SellSprite.y = Relheight + HeightMargin
-  SellSprite.x = 100 + WidthMargin * 2
-  SellSprite.height = BuildSprite.height
-  SellSprite.width = BuildSprite.width
   BuildSprite.interactive = true
   BuildSprite.buttonMode = true
   UpgradeSprite.interactive = true
@@ -126,15 +124,51 @@ function GUI () {
   SellSprite.on('click', (e) => {
     input('SELL')
   })
-  stage.addChild(BuildSprite)
-  stage.addChild(UpgradeSprite)
-  stage.addChild(SellSprite)
-
-  lify.y += 30
-  wavy.y += 75
-  stage.addChild(goldy)
-  stage.addChild(lify)
-  stage.addChild(wavy)
+  const HeightMargin = 20
+  const WidthMargin = 100
+  const boundWidthMargin = 10
+  const Scaler = {x: 6, y: 3}
+  const iScaler = {x: 1 / Scaler.x, y: 1 / Scaler.y}
+  actionMenu.scale = Scaler
+  BuildSprite.y = HeightMargin * iScaler.x
+  BuildSprite.x = boundWidthMargin * iScaler.y
+  BuildSprite.scale = iScaler
+  UpgradeSprite.y = HeightMargin * iScaler.x
+  UpgradeSprite.x = (boundWidthMargin + WidthMargin) * iScaler.y
+  UpgradeSprite.scale = iScaler
+  SellSprite.y = HeightMargin * iScaler.x
+  SellSprite.x = (boundWidthMargin + WidthMargin * 2) * iScaler.y
+  SellSprite.scale = iScaler
+  actionMenu.addChild(BuildSprite)
+  actionMenu.addChild(UpgradeSprite)
+  actionMenu.addChild(SellSprite)
+  actionMenu.y = Relheight + 100
+  actionMenu.x = 100
+  GUIMANAGER.addChild(actionMenu)
+  var Info = new PIXI.Sprite(
+    PIXI.loader.resources['img/panel_beige.png'].texture
+  )
+  const Scaler2 = {x: 2, y: 1.5}
+  const iScaler2 = {x: 1 / Scaler.x, y: 1 / Scaler.y}
+  Info.scale = Scaler2
+  Info.x = 20
+  Info.y = 20
+  const WidthMargin2 = 10
+  const HeightMargin2 = 20
+  const boundMargin = 10
+  goldy.x = lify.x = wavy.x = WidthMargin2
+  goldy.y = boundMargin
+  lify.y += boundMargin + HeightMargin2
+  wavy.y += boundMargin + HeightMargin2 * 2
+  goldy.scale = iScaler2
+  lify.scale = iScaler2
+  wavy.scale = iScaler2
+  Info.addChild(goldy)
+  Info.addChild(lify)
+  Info.addChild(wavy)
+  GUIMANAGER.addChild(Info)
+  stage.addChild(GUIMANAGER)
+  stage.addChild(BOARD)
 }
 function searchPosInVector (position, vector) {
   var it = 0
@@ -158,7 +192,7 @@ function setup () {
   spriteMat = Array(game.turn.board.length).fill().map(() => Array(game.turn.board[0].length).fill(null))
   setStage(game.turn.board)
   GUI()
-  
+
   renderLoop()
   setInterval(() => {
     game.tick()
@@ -171,8 +205,8 @@ function setup () {
     game.turn.enemies.forEach(foe => {
       let i = foe.position.i
       let j = foe.position.j
-      let OrcSprite 
-      if(foe.type === 'BASIC') {
+      let OrcSprite
+      if (foe.type === 'BASIC') {
         OrcSprite = new PIXI.Sprite(
           PIXI.loader.resources['img/orc.png'].texture
         )
@@ -244,33 +278,31 @@ function setup () {
         spriteMat[i][j].addChild(TowerSprite1)
       }
     })
-    var gold = new PIXI.Text(Math.round(game.turn.gold * 4) / 4, {font: '30px Arial', fill: 'gold'})
-    gold.x += 175
+    var gold = new PIXI.Text(Math.round(game.turn.gold * 4) / 4, {font: '50px Arial', fill: 'gold'})
+    gold.x += 300
     goldy.removeChildren()
     goldy.addChild(gold)
-    var life = new PIXI.Text(game.turn.lifes, {font: '30px Arial', fill: 'red'})
-    life.x += 85
+    var life = new PIXI.Text(game.turn.lifes, {font: '50px Arial', fill: 'red'})
+    life.x += 125
     lify.removeChildren()
     lify.addChild(life)
-    var wave = new PIXI.Text(game.waveNumber + 1, {font: '30px Arial', fill: 'red'})
-    wave.x += 125
+    var wave = new PIXI.Text(game.waveNumber + 1, {font: '50px Arial', fill: 'red'})
+    wave.x += 175 // + 60 * Math.round((game.waveNumber + 1) / 10) ?
     wavy.removeChildren()
     wavy.addChild(wave)
-    var TowerCost = new PIXI.Text(C.COST.ARCHER, {font: '30px Arial', fill: 'gold'})
+    var TowerCost = new PIXI.Text(C.COST.ARCHER, {font: '30px Arial', fill: 'black'})
     var UpCost, SellCost
     let it = 0
-    it = searchPosInVector (SelectedTile, game.turn.buildings)
-    UpCost = new PIXI.Text(0, {font: '30px Arial', fill: 'gold'})
-    SellCost = new PIXI.Text(0, {font: '30px Arial', fill: 'gold'})
+    it = searchPosInVector(SelectedTile, game.turn.buildings)
+    UpCost = new PIXI.Text(0, {font: '30px Arial', fill: 'black'})
+    SellCost = new PIXI.Text(0, {font: '30px Arial', fill: 'black'})
     if (it !== game.turn.buildings.length) {
-      UpCost = new PIXI.Text(game.turn.buildings[it].upgradeCost(), {font: '30px Arial', fill: 'gold'})
-      SellCost = new PIXI.Text(game.turn.buildings[it].SellCost(), {font: '30px Arial', fill: 'gold'})
+      UpCost = new PIXI.Text(game.turn.buildings[it].upgradeCost(), {font: '30px Arial', fill: 'black'})
+      SellCost = new PIXI.Text(game.turn.buildings[it].SellCost(), {font: '30px Arial', fill: 'black'})
     }
-    TowerCost.y += 100
-    UpCost.y += 100
-    SellCost.y += 100
-    SellCost.width = 100000
-    SellCost.height = 100000
+    TowerCost.y += 75
+    UpCost.y += 75
+    SellCost.y += 75
     BuildSprite.removeChildren()
     BuildSprite.addChild(TowerCost)
     UpgradeSprite.removeChildren()
@@ -319,8 +351,8 @@ function setStage (board, sprites) {
         pos.y -= 15
       }
       spriteMat[b][a - b].x = pos.x
-      spriteMat[b][a - b].y = pos.y +  40
-      stage.addChild(spriteMat[b][a - b])
+      spriteMat[b][a - b].y = pos.y + 40
+      BOARD.addChild(spriteMat[b][a - b])
     }
   }
 }
