@@ -40,10 +40,12 @@ io.on('connection', function (socket) {
   })
 
   socket.on('input', function (input) {
+    if(games[socket.gameId] === undefined) return
     games[socket.gameId].onInput(socket, input)
   })
 
   socket.on('disconnect', function () {
+    if(games[socket.gameId] === undefined) return
     console.log(`${socket.id} disconnected`)
     const game = games[socket.gameId]
     game.onPlayerLeave(socket)
