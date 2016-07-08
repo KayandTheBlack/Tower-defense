@@ -10,7 +10,7 @@
     "build": "browserify src/client.js -o dist/bundle.js && echo 'built!'",
     "watch": "chokidar 'src/**/*.js' 'test/**/*.js' -c 'npm test; npm run build'",
     "test": "standard && tape test/**/*.spec.js | tap-notify | tap-spec",
-    "start": "npm i --only=dev && npm run build && node src/server.js"
+    "start": "npm run build && node src/server.js"
   },
   "repository": {
     "type": "git",
@@ -31,6 +31,7 @@
     "tape": "^4.6.0"
   },
   "dependencies": {
+    "body-parser": "^1.15.2",
     "clone": "^1.0.2",
     "express": "^4.14.0",
     "pixi.js": "^3.0.11",

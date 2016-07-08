@@ -28,10 +28,19 @@ var imgResources = [
   'img/tank.png',
   'img/panel_beige.png'
 ]
-
+function onResize () {
+  const width = window.innerWidth
+  const height = window.innerHeight
+  renderer.view.style.width = width + 'px'
+  renderer.view.style.height = height + 'px'
+  renderer.resize(width, height)
+}
+onResize()
+window.addEventListener('resize', onResize)
 // LOAD IMAGES
 var ops = null
 var game
+socket.on('connect', () => { socket.emit('joinGame', prompt('Insert game name:')) })
 socket.on('game:state', (state) => {
   game.turn = new Turn(state.turn.board, state.turn.inputs, state.turn.buildings, state.turn.gold, state.turn.enemies, state.turn.lifes)
   game.waveNumber = state.waveNumber
