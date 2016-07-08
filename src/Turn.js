@@ -83,6 +83,7 @@ class Turn {
           workedTiles.push(this.inputs[i].tile) // move to every case where it works ?
           if (this.inputs[i].action === 'BUILD') {
             if (getPosInBoard(nwboard, this.inputs[i].tile) !== C.BUILDABLE_CELL) console.log('cant build there')
+            else if (searchPosInVector(this.inputs[i].tile, nwbuildings) !== nwbuildings.length) console.log('cant build there')
             else {
               if (nwgold < C.COST[this.inputs[i].type]) console.log('Not Enough Credits')
               else {
